@@ -4,10 +4,6 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Configuración para exportación estática (requerido para HostGator)
-  output: 'export',
-  trailingSlash: true,
-  
   eslint: {
     ignoreDuringBuilds: true,
   },
