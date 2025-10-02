@@ -1,0 +1,41 @@
+# UNIVERSO CELULAR - Configuración para desarrollo local
+# ================================================================
+
+# Habilitar compresión GZIP
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# Headers de seguridad básicos
+<IfModule mod_headers.c>
+    # Permitir acceso a archivos estáticos
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type"
+</IfModule>
+
+# Configuración de tipos MIME
+<IfModule mod_mime.c>
+    AddType image/webp .webp
+    AddType image/avif .avif
+    AddType application/manifest+json .webmanifest
+    AddType font/woff2 .woff2
+    AddType image/png .png
+    AddType image/jpeg .jpg
+    AddType image/jpeg .jpeg
+    AddType image/gif .gif
+    AddType image/svg+xml .svg
+</IfModule>
+
+# NO redirigir en desarrollo - Next.js maneja sus propias rutas

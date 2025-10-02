@@ -1,0 +1,27 @@
+{
+  "name": "UNIVERSO CELULAR",
+  "short_name": "UniversoCelular",
+  "description": "Servicios profesionales de desbloqueo y reparación de dispositivos móviles",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#84cc16",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["business", "utilities", "productivity"],
+  "lang": "es",
+  "dir": "ltr"
+}

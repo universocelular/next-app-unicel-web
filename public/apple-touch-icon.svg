@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <defs>
+    <radialGradient id="appleGrad" cx="40%" cy="30%" r="60%">
+      <stop offset="0%" style="stop-color:#f0f0f0;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#d0d0d0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a0a0a0;stop-opacity:1" />
+    </radialGradient>
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#c0c0c0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#909090;stop-opacity:1" />
+    </linearGradient>
+    <radialGradient id="androidGrad" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" style="stop-color:#9ccc65;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#689f38;stop-opacity:1" />
+    </radialGradient>
+    <linearGradient id="lockBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2196f3;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1565c0;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="lockKeyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffc107;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ff8f00;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background for Apple touch icon -->
+  <rect width="180" height="180" rx="20" fill="#f8f9fa"/>
+  
+  <!-- Apple main shape -->
+  <path d="M90 30 
+           C 65 30, 45 50, 45 75
+           C 45 100, 53 115, 70 125
+           C 78 129, 95 129, 105 125
+           C 122 115, 135 100, 135 75
+           C 135 50, 115 30, 90 30 Z" 
+        fill="url(#appleGrad)" 
+        stroke="#888" 
+        stroke-width="2"/>
+  
+  <!-- Apple leaf -->
+  <ellipse cx="98" cy="26" rx="5" ry="10" 
+           fill="url(#leafGrad)" 
+           stroke="#888" 
+           stroke-width="1" 
+           transform="rotate(25 98 26)"/>
+  
+  <!-- Apple bite -->
+  <circle cx="118" cy="55" r="10" fill="white" opacity="0.9"/>
+  
+  <!-- Android character -->
+  <g transform="translate(55, 70)">
+    <!-- Android body -->
+    <ellipse cx="0" cy="6" rx="10" ry="13" fill="url(#androidGrad)"/>
+    <!-- Android head -->
+    <circle cx="0" cy="-6" r="8" fill="url(#androidGrad)"/>
+    <!-- Android arms -->
+    <ellipse cx="-12" cy="4" rx="2.5" ry="6" fill="url(#androidGrad)"/>
+    <ellipse cx="12" cy="4" rx="2.5" ry="6" fill="url(#androidGrad)"/>
+    <!-- Android legs -->
+    <ellipse cx="-5" cy="16" rx="2.5" ry="6" fill="url(#androidGrad)"/>
+    <ellipse cx="5" cy="16" rx="2.5" ry="6" fill="url(#androidGrad)"/>
+    <!-- Android eyes -->
+    <circle cx="-3" cy="-8" r="1.2" fill="white"/>
+    <circle cx="3" cy="-8" r="1.2" fill="white"/>
+    <!-- Android antennae -->
+    <line x1="-5" y1="-13" x2="-7" y2="-16" stroke="url(#androidGrad)" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="5" y1="-13" x2="7" y2="-16" stroke="url(#androidGrad)" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Security lock -->
+  <g transform="translate(105, 95)">
+    <!-- Lock body -->
+    <rect x="0" y="6" width="20" height="15" rx="2.5" 
+          fill="url(#lockBodyGrad)" 
+          stroke="#1565c0" 
+          stroke-width="1"/>
+    <!-- Lock shackle -->
+    <path d="M5 6 C5 2, 10 -1, 15 2 C15 6" 
+          fill="none" 
+          stroke="url(#lockBodyGrad)" 
+          stroke-width="2.5" 
+          stroke-linecap="round"/>
+    <!-- Lock keyhole -->
+    <circle cx="10" cy="13.5" r="2.5" fill="url(#lockKeyGrad)"/>
+    <rect x="9" y="13.5" width="2" height="3" fill="url(#lockKeyGrad)"/>
+  </g>
+</svg>
