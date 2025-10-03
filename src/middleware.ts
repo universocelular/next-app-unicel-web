@@ -42,7 +42,14 @@ export function middleware(request: NextRequest) {
   if (!isAdminSubdomain && isAdminRoute) {
     // Redirigir al subdominio admin
     const adminUrl = new URL(request.url)
-    adminUrl.hostname = `admin.${hostname}`
+    
+    // Remover 'www.' si existe antes de agregar 'admin.'
+    let baseHostname = hostname
+    if (hostname.startsWith('www.')) {
+      baseHostname = hostname.replace('www.', '')
+    }
+    
+    adminUrl.hostname = `admin.${baseHostname}`
     adminUrl.pathname = pathname.replace('/admin', '/admin')
     return NextResponse.redirect(adminUrl)
   }

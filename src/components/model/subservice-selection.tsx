@@ -66,7 +66,7 @@ export function SubServiceSelection({ model, service }: { model: Model, service:
               onClick={() => handleSelect(sub.id)}
               className="w-full h-full text-left"
             >
-                <Card className="h-full flex flex-col justify-center items-center text-center border-2 border-border/20 hover:border-secondary transition-colors duration-300 p-2 overflow-hidden">
+                <Card className="h-full flex flex-col justify-center items-center text-center border-2 border-border/20 hover:border-primary transition-colors duration-300 p-2 overflow-hidden">
                   <div className="flex-1 flex justify-center items-center pointer-events-none">
                     {sub.emoji ? (
                       <span className="text-5xl">{sub.emoji}</span>

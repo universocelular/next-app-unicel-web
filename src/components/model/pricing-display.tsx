@@ -117,9 +117,17 @@ export function PricingDisplay({ model, service, subServiceId, carrierId }: { mo
 
     // Para SIM unlock (servicio ID 4)
     if (service.id === '4' && carrierId) {
-      const simUnlockOverrides = model.priceOverrides['4'] as Record<string, number | null> | null;
-      if (simUnlockOverrides && carrierId in simUnlockOverrides) {
-        return simUnlockOverrides[carrierId];
+      const simUnlockOverrides = model.priceOverrides['4'];
+      
+      // Verificar si es un objeto con carriers o un número directo
+      if (simUnlockOverrides && typeof simUnlockOverrides === 'object' && !Array.isArray(simUnlockOverrides)) {
+        const carrierOverrides = simUnlockOverrides as Record<string, number | null>;
+        if (carrierId in carrierOverrides) {
+          return carrierOverrides[carrierId];
+        }
+      } else if (typeof simUnlockOverrides === 'number') {
+        // Si es un número directo, usarlo para todos los carriers
+        return simUnlockOverrides;
       }
       return null;
     }
