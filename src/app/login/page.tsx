@@ -19,21 +19,40 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // Simple validation simulation
-    if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-      toast({
-        title: "Acceso Concedido",
-        description: "Redirigiendo al panel...",
+    
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
       });
-      setTimeout(() => router.push("/admin"), 1000);
-    } else {
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        toast({
+          title: "Acceso Concedido",
+          description: "Redirigiendo al panel...",
+        });
+        setTimeout(() => router.push("/admin"), 1000);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error de acceso",
+          description: data.message || "Email o contraseña inválidos.",
+        });
+        setIsSubmitting(false);
+      }
+    } catch (error) {
       toast({
         variant: "destructive",
-        title: "Error de acceso",
-        description: "Email o contraseña inválidos.",
+        title: "Error",
+        description: "Error al conectar con el servidor.",
       });
       setIsSubmitting(false);
     }

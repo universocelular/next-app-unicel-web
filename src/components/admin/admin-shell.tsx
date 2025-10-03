@@ -3,11 +3,14 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { EnhancedLogo } from "@/components/ui/enhanced-logo";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const NavLink = ({ href, children }: { href: string; children: ReactNode }) => {
   const pathname = usePathname();
@@ -27,6 +30,31 @@ const NavLink = ({ href, children }: { href: string; children: ReactNode }) => {
 };
 
 export function AdminShell({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Sesión cerrada",
+          description: "Has salido del panel de administración.",
+        });
+        router.push('/login');
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Error al cerrar sesión.",
+      });
+    }
+  };
+
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-muted/40 md:block">
@@ -82,8 +110,15 @@ export function AdminShell({ children }: { children: ReactNode }) {
               </NavLink>
             </nav>
           </div>
-          <div className="mt-auto p-4">
-            
+          <div className="mt-auto p-4 border-t">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start gap-2"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+              Cerrar Sesión
+            </Button>
           </div>
         </div>
       </div>
