@@ -2,7 +2,7 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
-import { collection, getDocs, getDoc, addDoc, doc, updateDoc, deleteDoc, writeBatch, query, where, orderBy, limit } from "firebase/firestore";
+import { collection, getDocs, getDoc, addDoc, doc, updateDoc, deleteDoc, writeBatch, query, where, orderBy, limit, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Model } from "@/lib/db/types";
 import { unstable_cache } from 'next/cache';
@@ -93,6 +93,27 @@ export async function getModelById(id: string): Promise<Model | undefined> {
   return getCachedModelById(id);
 }
 
+// Función de debug para verificar modelos específicos
+export async function debugModel(id: string): Promise<{ exists: boolean; data?: any; error?: string }> {
+  try {
+    console.log('Debug: Checking model with ID:', id);
+    const modelDoc = doc(db, "models", id);
+    const docSnap = await getDoc(modelDoc);
+    
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      console.log('Debug: Model exists with data:', data);
+      return { exists: true, data };
+    } else {
+      console.log('Debug: Model does not exist');
+      return { exists: false };
+    }
+  } catch (error) {
+    console.error('Debug: Error checking model:', error);
+    return { exists: false, error: error instanceof Error ? error.message : 'Error desconocido' };
+  }
+}
+
 export async function addModel(data: Omit<Model, 'id'>): Promise<Model> {
   try {
     console.log('addModel called with data:', data);
@@ -128,12 +149,28 @@ export async function addModel(data: Omit<Model, 'id'>): Promise<Model> {
 }
 
 export async function updateModel(id: string, data: Partial<Omit<Model, 'id'>>): Promise<Model | null> {
+  try {
+    console.log('updateModel called with id:', id, 'data:', data);
+    
+    if (!id || typeof id !== 'string') {
+      throw new Error('ID de modelo inválido');
+    }
+
     const modelDoc = doc(db, "models", id);
     
+    // Verificar que el documento existe antes de actualizar
+    const docSnap = await getDoc(modelDoc);
+    if (!docSnap.exists()) {
+      throw new Error('El modelo no existe en la base de datos');
+    }
+
     // Firestore disallows undefined values. We need to clean the data object.
     const cleanData = JSON.parse(JSON.stringify(data));
+    console.log('Clean data to be updated:', cleanData);
 
-    await updateDoc(modelDoc, cleanData);
+    // Usar setDoc con merge para evitar problemas con campos anidados
+    await setDoc(modelDoc, cleanData, { merge: true });
+    console.log('Model updated successfully');
 
     // Revalidar cache y páginas relacionadas
     revalidateTag('models');
@@ -146,9 +183,15 @@ export async function updateModel(id: string, data: Partial<Omit<Model, 'id'>>):
 
     const updatedDoc = await getDoc(modelDoc);
     if (updatedDoc.exists()) {
-        return { id: updatedDoc.id, ...updatedDoc.data() } as Model;
+        const updatedModel = { id: updatedDoc.id, ...updatedDoc.data() } as Model;
+        console.log('Updated model retrieved:', updatedModel);
+        return updatedModel;
     }
     return null;
+  } catch (error) {
+    console.error('Error updating model:', error);
+    throw new Error(`Error al actualizar el modelo: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+  }
 }
 
 export async function deleteModel(id: string): Promise<void> {

@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import type {  Model} from "@/lib/db/types";
-import { updateModel, updatePricesInBatch, setAllPricesUnderConstruction } from "@/lib/actions/models";
+import { updateModel, updatePricesInBatch, setAllPricesUnderConstruction, debugModel } from "@/lib/actions/models";
 import { getSettings, updateSettings } from "@/lib/actions/settings";
 import { Loader2, Search } from "lucide-react";
 import { getApplicableServices } from "@/lib/utils";
@@ -218,37 +218,65 @@ export function PricesClient() {
     if (!selectedModel) return;
 
     setIsSubmitting(true);
-    const updatedOverrides = JSON.parse(JSON.stringify(selectedModel.priceOverrides || {}));
-    const updatedDisabledPrices = JSON.parse(JSON.stringify(disabledPrices));
-
-    for (const key in prices) {
-        const newPrice = prices[key];
-
-        if (key.startsWith('4-')) {
-            const carrierId = key.substring(2);
-            if (!updatedOverrides['4']) updatedOverrides['4'] = {};
-            // Para SIM unlock, guardamos null en lugar de eliminar la entrada
-            updatedOverrides['4'][carrierId] = newPrice === undefined ? null : newPrice;
-        } else {
-            // Para servicios normales y subservicios, guardamos null en lugar de eliminar la entrada
-            updatedOverrides[key] = newPrice === undefined ? null : newPrice;
-        }
-    }
     
     try {
+      // Debug: Verificar el estado del modelo antes de actualizar
+      console.log('=== DEBUG: Verificando modelo antes de actualizar ===');
+      const debugResult = await debugModel(selectedModel.id);
+      console.log('Debug result:', debugResult);
+
+      // Inicializar objetos vacíos si no existen
+      const updatedOverrides: Record<string, any> = selectedModel.priceOverrides ? 
+        JSON.parse(JSON.stringify(selectedModel.priceOverrides)) : {};
+      const updatedDisabledPrices: Record<string, any> = selectedModel.disabledPrices ? 
+        JSON.parse(JSON.stringify(selectedModel.disabledPrices)) : {};
+
+      console.log('Initial state:', { 
+        selectedModel: selectedModel.id, 
+        initialOverrides: selectedModel.priceOverrides,
+        initialDisabled: selectedModel.disabledPrices,
+        pricesToUpdate: prices 
+      });
+
+      for (const key in prices) {
+          const newPrice = prices[key];
+
+          if (key.startsWith('4-')) {
+              const carrierId = key.substring(2);
+              if (!updatedOverrides['4']) updatedOverrides['4'] = {};
+              // Para SIM unlock, guardamos null en lugar de eliminar la entrada
+              updatedOverrides['4'][carrierId] = newPrice === undefined ? null : newPrice;
+          } else {
+              // Para servicios normales y subservicios, guardamos null en lugar de eliminar la entrada
+              updatedOverrides[key] = newPrice === undefined ? null : newPrice;
+          }
+      }
+
+      console.log('Data to be sent to updateModel:', { 
+        priceOverrides: updatedOverrides,
+        disabledPrices: updatedDisabledPrices 
+      });
+
       const updatedModel = await updateModel(selectedModel.id, { 
         priceOverrides: updatedOverrides,
         disabledPrices: updatedDisabledPrices
       });
+      
       if (updatedModel) {
         setModels(currentModels => 
             currentModels.map(m => m.id === updatedModel.id ? updatedModel : m)
         );
+        toast({ title: "Éxito", description: "Todos los precios han sido actualizados." });
+      } else {
+        throw new Error('No se pudo obtener el modelo actualizado');
       }
-      toast({ title: "Éxito", description: "Todos los precios han sido actualizados." });
     } catch (error) {
-      console.error(error);
-      toast({ variant: "destructive", title: "Error", description: "No se pudieron actualizar los precios." });
+      console.error('Error in handleSaveAllChanges:', error);
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: `No se pudieron actualizar los precios: ${error instanceof Error ? error.message : 'Error desconocido'}` 
+      });
     } finally {
       setIsSubmitting(false);
     }

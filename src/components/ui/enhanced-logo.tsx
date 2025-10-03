@@ -21,7 +21,7 @@ export function EnhancedLogo({
 
   return (
     <div className={cn(
-      "relative transition-all duration-300 ease-in-out",
+      "relative flex items-center justify-center",
       // Efectos de sombra adaptativos según el tema
       "drop-shadow-sm dark:drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]",
       // Filtro para mejorar contraste en modo oscuro

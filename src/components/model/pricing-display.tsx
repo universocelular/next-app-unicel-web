@@ -104,38 +104,49 @@ export function PricingDisplay({ model, service, subServiceId, carrierId }: { mo
   }, [model.disabledPrices, service.id, subServiceId, carrierId]);
 
   const price = useMemo(() => {
-    if (!model.priceOverrides) return null;
-
     // Si el precio está desactivado, retornar null
     if (isDisabled) return null;
 
     // Para subservicios
     if (subServiceId) {
-      const subServicePrice = model.priceOverrides[subServiceId] as number | null;
-      return subServicePrice;
+      const subService = service.subServices?.find(s => s.id === subServiceId);
+      if (!subService) return null;
+      
+      // Si hay priceOverrides, usar el override; sino usar precio base
+      if (model.priceOverrides && model.priceOverrides[subServiceId] !== undefined) {
+        return model.priceOverrides[subServiceId] as number | null;
+      }
+      return subService.price;
     }
 
     // Para SIM unlock (servicio ID 4)
     if (service.id === '4' && carrierId) {
-      const simUnlockOverrides = model.priceOverrides['4'];
-      
-      // Verificar si es un objeto con carriers o un número directo
-      if (simUnlockOverrides && typeof simUnlockOverrides === 'object' && !Array.isArray(simUnlockOverrides)) {
-        const carrierOverrides = simUnlockOverrides as Record<string, number | null>;
-        if (carrierId in carrierOverrides) {
-          return carrierOverrides[carrierId];
+      // Si hay priceOverrides para SIM unlock, usarlos
+      if (model.priceOverrides && model.priceOverrides['4']) {
+        const simUnlockOverrides = model.priceOverrides['4'];
+        
+        // Verificar si es un objeto con carriers o un número directo
+        if (typeof simUnlockOverrides === 'object' && !Array.isArray(simUnlockOverrides)) {
+          const carrierOverrides = simUnlockOverrides as Record<string, number | null>;
+          if (carrierId in carrierOverrides) {
+            return carrierOverrides[carrierId];
+          }
+        } else if (typeof simUnlockOverrides === 'number') {
+          // Si es un número directo, usarlo para todos los carriers
+          return simUnlockOverrides;
         }
-      } else if (typeof simUnlockOverrides === 'number') {
-        // Si es un número directo, usarlo para todos los carriers
-        return simUnlockOverrides;
       }
-      return null;
+      // Si no hay overrides, usar precio base del servicio
+      return service.price;
     }
 
     // Para servicios normales
-    const servicePrice = model.priceOverrides[service.id] as number | null;
-    return servicePrice;
-  }, [model.priceOverrides, isDisabled, service.id, subServiceId, carrierId]);
+    // Si hay priceOverrides, usar el override; sino usar precio base
+    if (model.priceOverrides && model.priceOverrides[service.id] !== undefined) {
+      return model.priceOverrides[service.id] as number | null;
+    }
+    return service.price;
+  }, [model.priceOverrides, isDisabled, service.id, subServiceId, carrierId, service.price, service.subServices]);
 
   const handleConsult = () => {
     const deviceName = `${model.brand} ${model.name}`;
