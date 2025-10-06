@@ -59,6 +59,57 @@ export async function getModelsNoCache(): Promise<Model[]> {
   return getModelsFresh();
 }
 
+// Función para verificar si un modelo específico existe en Firestore
+export async function checkModelExists(id: string): Promise<boolean> {
+  try {
+    console.log('🔍 Verificando si el modelo existe en Firestore:', id);
+    const modelDoc = doc(db, "models", id);
+    const docSnap = await getDoc(modelDoc);
+    const exists = docSnap.exists();
+    console.log('📊 Resultado de verificación:', { id, exists });
+    if (exists) {
+      const data = docSnap.data();
+      console.log('📋 Datos del modelo:', {
+        name: data.name,
+        brand: data.brand,
+        category: data.category
+      });
+    }
+    return exists;
+  } catch (error) {
+    console.error('❌ Error verificando modelo:', error);
+    return false;
+  }
+}
+
+// Función para obtener información detallada de un modelo
+export async function getModelInfo(id: string): Promise<{ exists: boolean; data?: any; error?: string }> {
+  try {
+    console.log('🔍 Obteniendo información del modelo:', id);
+    const modelDoc = doc(db, "models", id);
+    const docSnap = await getDoc(modelDoc);
+    
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      console.log('✅ Modelo encontrado:', {
+        id: docSnap.id,
+        name: data.name,
+        brand: data.brand,
+        category: data.category,
+        processor: data.processor,
+        priceOverrides: data.priceOverrides
+      });
+      return { exists: true, data: { id: docSnap.id, ...data } };
+    } else {
+      console.log('❌ Modelo no encontrado');
+      return { exists: false };
+    }
+  } catch (error) {
+    console.error('❌ Error obteniendo información del modelo:', error);
+    return { exists: false, error: error instanceof Error ? error.message : 'Error desconocido' };
+  }
+}
+
 // Función para obtener modelos frescos sin caché (útil después de eliminaciones)
 export async function getModelsFresh(): Promise<Model[]> {
   try {
@@ -138,7 +189,7 @@ export async function getModelById(id: string): Promise<Model | undefined> {
 // Función de debug para verificar modelos específicos
 export async function debugModel(id: string): Promise<{ exists: boolean; data?: any; error?: string }> {
   try {
-    console.log('Debug: Checking model with ID:', id);
+    console.log('🔍 Debug: Checking model with ID:', id);
     const modelDoc = doc(db, "models", id);
     const docSnap = await getDoc(modelDoc);
     
@@ -243,18 +294,37 @@ export async function deleteModel(id: string): Promise<void> {
       throw new Error('ID de modelo inválido');
     }
 
-    console.log('Eliminando modelo con ID:', id);
+    console.log('🗑️ Eliminando modelo con ID:', id);
     const modelDoc = doc(db, "models", id);    
     // Verificar que el documento existe antes de eliminar
     const docSnap = await getDoc(modelDoc);
     if (!docSnap.exists()) {
+      console.error('❌ El modelo no existe en la base de datos');
       throw new Error('El modelo no existe en la base de datos');
     }
 
-    console.log('Modelo encontrado, procediendo con la eliminación...');
+    const modelData = docSnap.data();
+    console.log('✅ Modelo encontrado:', {
+      id: docSnap.id,
+      name: modelData.name,
+      brand: modelData.brand,
+      category: modelData.category
+    });
+    
+    console.log('🔄 Procediendo con la eliminación de Firestore...');
     // Eliminar el documento
     await deleteDoc(modelDoc);
-    console.log('Modelo eliminado de Firestore exitosamente');
+    console.log('✅ Modelo eliminado de Firestore exitosamente');
+    
+    // Verificar inmediatamente que se eliminó
+    console.log('🔍 Verificando eliminación inmediata...');
+    const verifySnap = await getDoc(modelDoc);
+    if (verifySnap.exists()) {
+      console.error('❌ ERROR: El modelo aún existe después de la eliminación');
+      throw new Error('El modelo no se eliminó correctamente de Firestore');
+    } else {
+      console.log('✅ Confirmado: El modelo ya no existe en Firestore');
+    }
  
     // Revalidar cache y páginas relacionadas de manera más agresiva
     console.log('🔄 Iniciando invalidación de caché...');
@@ -268,6 +338,10 @@ export async function deleteModel(id: string): Promise<void> {
     revalidatePath("/model", 'layout');
     revalidatePath("/admin/brands", 'page');
     revalidatePath("/admin/prices", 'page');
+    
+    // Invalidación adicional para asegurar que el caché se limpie
+    revalidatePath("/admin/brands", 'layout');
+    revalidatePath("/admin", 'page');
     console.log('✅ Caché invalidado correctamente');
     
     // Esperar un momento para que se complete la invalidación

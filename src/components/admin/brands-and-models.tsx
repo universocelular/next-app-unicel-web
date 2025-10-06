@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { addBrand, updateBrand, deleteBrand } from "@/lib/actions/brands";
-import { addModel, updateModel, deleteModel } from "@/lib/actions/models";
+import { addModel, updateModel, deleteModel, checkModelExists } from "@/lib/actions/models";
 import type { Brand, Model } from "@/lib/db/types";
 import { PlusCircle, Trash, Edit, Loader2, Search } from "lucide-react";
 
@@ -57,6 +57,7 @@ import { useAdminData } from "@/contexts/admin-data-context";
 export function BrandsAndModels() {
   const { brands: initialBrands, models, setModels, refreshData, refreshDataAfterDeletion } = useAdminData();
   const { toast } = useToast();
+  const router = useRouter();
   
   const [brandModalOpen, setBrandModalOpen] = useState(false);
   const [modelModalOpen, setModelModalOpen] = useState(false);
@@ -275,6 +276,16 @@ export function BrandsAndModels() {
         console.log('⏳ Esperando invalidación del caché...');
         await new Promise(resolve => setTimeout(resolve, 100));
         
+        // Verificar una vez más que el modelo no existe en Firestore
+        console.log('🔍 Verificación final: ¿Existe el modelo en Firestore?');
+        const stillExists = await checkModelExists(modelToDelete.id);
+        if (stillExists) {
+          console.error('❌ ERROR CRÍTICO: El modelo aún existe en Firestore después de la eliminación');
+          throw new Error('El modelo no se eliminó correctamente de la base de datos');
+        } else {
+          console.log('✅ Confirmado: El modelo ya no existe en Firestore');
+        }
+        
         // Refrescar los datos desde la base de datos usando función fresca
         console.log('🔄 Refrescando datos frescos desde la base de datos...');
         await refreshDataAfterDeletion(modelToDelete.id);
@@ -282,6 +293,10 @@ export function BrandsAndModels() {
         
         toast({ title: "Éxito", description: "Modelo eliminado correctamente." });
         console.log('🎉 Eliminación completada exitosamente');
+        
+        // Redirigir para forzar una recarga completa de la página
+        console.log('🔄 Redirigiendo para forzar recarga completa...');
+        router.refresh();
     } catch (error) {
         console.error('❌ Error in confirmDeleteModel:', error);
         const errorMessage = error instanceof Error ? error.message : 'Error desconocido al eliminar el modelo';
