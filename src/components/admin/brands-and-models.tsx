@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { addBrand, updateBrand, deleteBrand } from "@/lib/actions/brands";
-import { addModel, updateModel, deleteModel, checkModelExists } from "@/lib/actions/models";
+import { addModel, updateModel, deleteModel, checkModelExists, searchModelsByName, debugModelExistence, forceClearCache } from "@/lib/actions/models";
 import type { Brand, Model } from "@/lib/db/types";
 import { PlusCircle, Trash, Edit, Loader2, Search } from "lucide-react";
 
@@ -266,6 +266,11 @@ export function BrandsAndModels() {
     
     console.log('🗑️ Iniciando eliminación del modelo:', modelToDelete.name, 'ID:', modelToDelete.id);
     
+    // Debug: Verificar el estado actual del modelo antes de eliminar
+    console.log('🔍 Debugging estado inicial del modelo...');
+    const initialDebug = await debugModelExistence(modelToDelete.id);
+    console.log('📊 Estado inicial:', initialDebug);
+    
     try {
         // Primero eliminar de la base de datos
         console.log('📡 Enviando solicitud de eliminación al servidor...');
@@ -286,6 +291,24 @@ export function BrandsAndModels() {
           console.log('✅ Confirmado: El modelo ya no existe en Firestore');
         }
         
+        // Buscar si hay otros modelos con el mismo nombre (posibles duplicados)
+        console.log('🔍 Buscando modelos duplicados con el mismo nombre...');
+        const duplicateModels = await searchModelsByName(modelToDelete.name);
+        if (duplicateModels.length > 0) {
+          console.warn(`⚠️ ADVERTENCIA: Se encontraron ${duplicateModels.length} modelos con el mismo nombre "${modelToDelete.name}":`, duplicateModels.map(m => m.id));
+        } else {
+          console.log('✅ No se encontraron modelos duplicados con el mismo nombre');
+        }
+        
+        // Debug: Verificar el estado después de la eliminación
+        console.log('🔍 Debugging estado después de eliminación...');
+        const afterDeleteDebug = await debugModelExistence(modelToDelete.id);
+        console.log('📊 Estado después de eliminación:', afterDeleteDebug);
+        
+        // Forzar limpieza completa del caché
+        console.log('🧹 Forzando limpieza completa del caché...');
+        await forceClearCache();
+        
         // Refrescar los datos desde la base de datos usando función fresca
         console.log('🔄 Refrescando datos frescos desde la base de datos...');
         await refreshDataAfterDeletion(modelToDelete.id);
@@ -297,18 +320,29 @@ export function BrandsAndModels() {
         // Redirigir para forzar una recarga completa de la página
         console.log('🔄 Redirigiendo para forzar recarga completa...');
         router.refresh();
-    } catch (error) {
-        console.error('❌ Error in confirmDeleteModel:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Error desconocido al eliminar el modelo';
-        toast({ 
-            variant: "destructive", 
-            title: "Error al eliminar modelo", 
-            description: errorMessage 
-        });
-    } finally {
-        setModelToDelete(null);
-        console.log('🏁 Proceso de eliminación finalizado');
-    }
+        } catch (error) {
+            console.error('❌ Error in confirmDeleteModel:', error);
+            let errorMessage = 'Error desconocido al eliminar el modelo';
+            let errorTitle = 'Error al eliminar modelo';
+            
+            if (error instanceof Error) {
+                errorMessage = error.message;
+                // Detectar si el modelo ya no existe
+                if (error.message.includes('no existe') || error.message.includes('ya no existe')) {
+                    errorTitle = 'Modelo ya eliminado';
+                    errorMessage = 'El modelo ya no existe en la base de datos. Puede haber sido eliminado manualmente.';
+                }
+            }
+            
+            toast({ 
+                variant: "destructive", 
+                title: errorTitle, 
+                description: errorMessage 
+            });
+        } finally {
+            setModelToDelete(null);
+            console.log('🏁 Proceso de eliminación finalizado');
+        }
   };
 
   const filteredModels = models.filter(model =>

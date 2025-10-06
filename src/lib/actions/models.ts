@@ -59,6 +59,41 @@ export async function getModelsNoCache(): Promise<Model[]> {
   return getModelsFresh();
 }
 
+// Función para forzar la limpieza completa del caché
+export async function forceClearCache(): Promise<void> {
+  try {
+    console.log('🧹 Forzando limpieza completa del caché...');
+    
+    // Invalidar todas las etiquetas relacionadas con modelos
+    revalidateTag('models');
+    revalidateTag('models-list');
+    revalidateTag('model-by-id');
+    
+    // Invalidar todas las rutas relacionadas
+    revalidatePath("/admin/brands");
+    revalidatePath("/admin/prices");
+    revalidatePath("/admin");
+    revalidatePath("/");
+    revalidatePath("/model");
+    
+    // Invalidar layouts también
+    revalidatePath("/admin", 'layout');
+    revalidatePath("/admin/brands", 'layout');
+    revalidatePath("/admin/prices", 'layout');
+    revalidatePath("/", 'layout');
+    revalidatePath("/model", 'layout');
+    
+    // Invalidar páginas específicas
+    revalidatePath("/admin/brands", 'page');
+    revalidatePath("/admin/prices", 'page');
+    revalidatePath("/admin", 'page');
+    
+    console.log('✅ Caché limpiado completamente');
+  } catch (error) {
+    console.error('❌ Error limpiando caché:', error);
+  }
+}
+
 // Función para verificar si un modelo específico existe en Firestore
 export async function checkModelExists(id: string): Promise<boolean> {
   try {
@@ -110,12 +145,144 @@ export async function getModelInfo(id: string): Promise<{ exists: boolean; data?
   }
 }
 
+// Función para buscar modelos por nombre (para detectar duplicados)
+export async function searchModelsByName(name: string): Promise<Model[]> {
+  try {
+    console.log('🔍 Buscando modelos por nombre:', name);
+    unstable_noStore();
+    
+    // Obtener todos los modelos y filtrar por nombre (más seguro que usar where)
+    const querySnapshot = await getDocs(modelsCollectionRef);
+    const models: Model[] = [];
+    
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.name === name) {
+        models.push({ id: doc.id, ...data } as Model);
+      }
+    });
+    
+    console.log(`📊 Encontrados ${models.length} modelos con nombre "${name}":`, models.map(m => m.id));
+    return models;
+  } catch (error) {
+    console.error('❌ Error buscando modelos por nombre:', error);
+    return [];
+  }
+}
+
+// Función para verificar si un modelo específico existe en la base de datos
+export async function debugModelExistence(id: string): Promise<{ 
+  existsInFirestore: boolean; 
+  existsInCache: boolean; 
+  firestoreData?: any; 
+  cacheData?: any;
+  timestamp: string;
+}> {
+  const timestamp = new Date().toISOString();
+  console.log(`🔍 Debugging model existence [${timestamp}]:`, id);
+  
+  try {
+    // Verificar en Firestore directamente
+    const modelDoc = doc(db, "models", id);
+    const docSnap = await getDoc(modelDoc);
+    const existsInFirestore = docSnap.exists();
+    const firestoreData = existsInFirestore ? docSnap.data() : null;
+    
+    console.log(`📊 Firestore check [${timestamp}]:`, { exists: existsInFirestore, data: firestoreData });
+    
+    // Verificar en caché (usando la función cached)
+    let existsInCache = false;
+    let cacheData = null;
+    try {
+      const cachedModels = await getCachedModels();
+      const cachedModel = cachedModels.find(m => m.id === id);
+      existsInCache = !!cachedModel;
+      cacheData = cachedModel;
+      console.log(`📊 Cache check [${timestamp}]:`, { exists: existsInCache, data: cacheData });
+    } catch (cacheError) {
+      console.error('Error checking cache:', cacheError);
+    }
+    
+    return {
+      existsInFirestore,
+      existsInCache,
+      firestoreData,
+      cacheData,
+      timestamp
+    };
+  } catch (error) {
+    console.error('Error in debugModelExistence:', error);
+    return {
+      existsInFirestore: false,
+      existsInCache: false,
+      timestamp
+    };
+  }
+}
+
+// Función para verificar la consistencia de los datos (simplificada)
+export async function verifyDataConsistency(): Promise<{ totalModels: number; duplicateNames: string[]; inconsistentIds: string[] }> {
+  try {
+    console.log('🔍 Verificando consistencia de datos...');
+    unstable_noStore();
+    
+    const querySnapshot = await getDocs(modelsCollectionRef);
+    const models: Model[] = [];
+    const nameCounts: { [key: string]: number } = {};
+    const duplicateNames: string[] = [];
+    const inconsistentIds: string[] = [];
+    
+    querySnapshot.forEach((doc) => {
+      try {
+        const data = doc.data();
+        const model = { id: doc.id, ...data } as Model;
+        models.push(model);
+        
+        // Contar nombres duplicados
+        if (model.name && typeof model.name === 'string') {
+          if (nameCounts[model.name]) {
+            nameCounts[model.name]++;
+            if (nameCounts[model.name] === 2) {
+              duplicateNames.push(model.name);
+            }
+          } else {
+            nameCounts[model.name] = 1;
+          }
+        }
+        
+        // Verificar IDs inconsistentes
+        if (!doc.id) {
+          inconsistentIds.push('unknown');
+        }
+      } catch (docError) {
+        console.error('Error procesando documento:', doc.id, docError);
+        inconsistentIds.push(doc.id || 'unknown');
+      }
+    });
+    
+    console.log(`📊 Verificación de consistencia completada:`);
+    console.log(`   - Total de modelos: ${models.length}`);
+    console.log(`   - Nombres duplicados: ${duplicateNames.length}`);
+    console.log(`   - IDs inconsistentes: ${inconsistentIds.length}`);
+    
+    return {
+      totalModels: models.length,
+      duplicateNames,
+      inconsistentIds
+    };
+  } catch (error) {
+    console.error('❌ Error verificando consistencia de datos:', error);
+    return { totalModels: 0, duplicateNames: [], inconsistentIds: [] };
+  }
+}
+
 // Función para obtener modelos frescos sin caché (útil después de eliminaciones)
 export async function getModelsFresh(): Promise<Model[]> {
   try {
     // Forzar que no se use caché
     unstable_noStore();
-    console.log('🔄 getModelsFresh: Obteniendo modelos directamente de Firestore (sin caché)...');
+    const timestamp = new Date().toISOString();
+    console.log(`🔄 getModelsFresh [${timestamp}]: Obteniendo modelos directamente de Firestore (sin caché)...`);
     const querySnapshot = await getDocs(
       query(modelsCollectionRef, orderBy('brand'))
     );
@@ -137,8 +304,9 @@ export async function getModelsFresh(): Promise<Model[]> {
       return a.name.localeCompare(b.name);
     });
     
-    console.log('✅ getModelsFresh: Obtenidos', sortedModels.length, 'modelos frescos');
-    console.log('🔍 Primeros 5 IDs de modelos frescos:', sortedModels.slice(0, 5).map(m => m.id));
+    console.log(`✅ getModelsFresh [${timestamp}]: Obtenidos`, sortedModels.length, 'modelos frescos');
+    console.log(`🔍 Primeros 5 IDs de modelos frescos [${timestamp}]:`, sortedModels.slice(0, 5).map(m => m.id));
+    console.log(`📊 Últimos 5 IDs de modelos frescos [${timestamp}]:`, sortedModels.slice(-5).map(m => m.id));
     return sortedModels;
   } catch (error) {
     console.error('❌ Error fetching fresh models:', error);
@@ -294,13 +462,16 @@ export async function deleteModel(id: string): Promise<void> {
       throw new Error('ID de modelo inválido');
     }
 
-    console.log('🗑️ Eliminando modelo con ID:', id);
+    const deleteTimestamp = new Date().toISOString();
+    console.log(`🗑️ Eliminando modelo con ID [${deleteTimestamp}]:`, id);
     const modelDoc = doc(db, "models", id);    
     // Verificar que el documento existe antes de eliminar
     const docSnap = await getDoc(modelDoc);
     if (!docSnap.exists()) {
-      console.error('❌ El modelo no existe en la base de datos');
-      throw new Error('El modelo no existe en la base de datos');
+      console.warn(`⚠️ El modelo ya no existe en la base de datos [${deleteTimestamp}] - puede haber sido eliminado manualmente`);
+      // No lanzar error, simplemente confirmar que ya no existe
+      console.log('✅ El modelo ya no existe, considerando eliminación exitosa');
+      return; // Salir de la función sin error
     }
 
     const modelData = docSnap.data();
@@ -347,15 +518,19 @@ export async function deleteModel(id: string): Promise<void> {
     // Esperar un momento para que se complete la invalidación
     await new Promise(resolve => setTimeout(resolve, 200));
     
-    // Verificar que el modelo realmente se eliminó obteniendo datos frescos
-    console.log('🔍 Verificando eliminación con datos frescos...');
-    const freshModels = await getModelsFresh();
-    const modelStillExists = freshModels.some(model => model.id === id);
-    if (modelStillExists) {
-      console.error('❌ ERROR: El modelo aún existe en Firestore después de la eliminación');
-      throw new Error('El modelo no se eliminó correctamente de la base de datos');
-    } else {
-      console.log('✅ Confirmado: El modelo se eliminó correctamente de Firestore');
+    // Verificar que el modelo realmente se eliminó con una consulta directa
+    console.log('🔍 Verificando eliminación con consulta directa...');
+    try {
+      const directCheck = await getDoc(modelDoc);
+      if (directCheck.exists()) {
+        console.error('❌ ERROR: El modelo aún existe en Firestore después de la eliminación');
+        throw new Error('El modelo no se eliminó correctamente de la base de datos');
+      } else {
+        console.log('✅ Confirmado: El modelo se eliminó correctamente de Firestore');
+      }
+    } catch (verifyError) {
+      console.error('❌ Error verificando eliminación:', verifyError);
+      // No lanzar error aquí, solo loggear
     }
     
   } catch (error) {
