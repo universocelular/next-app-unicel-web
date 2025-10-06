@@ -53,6 +53,39 @@ export async function getModels(): Promise<Model[]> {
   return getCachedModels();
 }
 
+// Función para obtener modelos frescos sin caché (útil después de eliminaciones)
+export async function getModelsFresh(): Promise<Model[]> {
+  try {
+    console.log('🔄 getModelsFresh: Obteniendo modelos directamente de Firestore...');
+    const querySnapshot = await getDocs(
+      query(modelsCollectionRef, orderBy('brand'))
+    );
+    const models: Model[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      models.push({ 
+        id: doc.id, 
+        ...data,
+        brand: data.brand || '',
+        name: data.name || '',
+        category: data.category || 'Phone'
+      } as Model);
+    });
+    
+    const sortedModels = models.sort((a, b) => {
+      const brandCompare = a.brand.localeCompare(b.brand);
+      if (brandCompare !== 0) return brandCompare;
+      return a.name.localeCompare(b.name);
+    });
+    
+    console.log('✅ getModelsFresh: Obtenidos', sortedModels.length, 'modelos frescos');
+    return sortedModels;
+  } catch (error) {
+    console.error('❌ Error fetching fresh models:', error);
+    return [];
+  }
+}
+
 // Caché optimizado para modelo individual
 const getCachedModelById = unstable_cache(
   async (id: string): Promise<Model | undefined> => {
@@ -214,13 +247,15 @@ export async function deleteModel(id: string): Promise<void> {
     await deleteDoc(modelDoc);
     console.log('Modelo eliminado de Firestore exitosamente');
  
-    // Revalidar cache y páginas relacionadas
+    // Revalidar cache y páginas relacionadas de manera más agresiva
     revalidateTag('models');
     revalidateTag('models-list');
     revalidateTag(`model-by-id-${id}`);
     revalidatePath("/admin/brands");
     revalidatePath("/admin/prices");
     revalidatePath("/");
+    revalidatePath("/admin", 'layout');
+    revalidatePath("/model", 'layout');
     console.log('Caché invalidado correctamente');
     
   } catch (error) {

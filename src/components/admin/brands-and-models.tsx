@@ -55,7 +55,7 @@ import { Card, CardContent } from "../ui/card";
 import { useAdminData } from "@/contexts/admin-data-context";
 
 export function BrandsAndModels() {
-  const { brands: initialBrands, models, setModels, refreshData } = useAdminData();
+  const { brands: initialBrands, models, setModels, refreshData, refreshDataAfterDeletion } = useAdminData();
   const { toast } = useToast();
   
   const [brandModalOpen, setBrandModalOpen] = useState(false);
@@ -275,10 +275,10 @@ export function BrandsAndModels() {
         console.log('⏳ Esperando invalidación del caché...');
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Refrescar los datos desde la base de datos
-        console.log('🔄 Refrescando datos desde la base de datos...');
-        await refreshData();
-        console.log('✅ Datos refrescados correctamente');
+        // Refrescar los datos desde la base de datos usando función fresca
+        console.log('🔄 Refrescando datos frescos desde la base de datos...');
+        await refreshDataAfterDeletion();
+        console.log('✅ Datos frescos refrescados correctamente');
         
         // Verificar que el modelo ya no está en la lista (usando el estado actualizado)
         setTimeout(() => {
