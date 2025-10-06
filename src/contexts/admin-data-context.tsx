@@ -18,7 +18,7 @@ interface AdminDataContextType {
   coupons: Coupon[];
   settings: Settings;
   refreshData: () => Promise<void>;
-  refreshDataAfterDeletion: () => Promise<void>;
+  refreshDataAfterDeletion: (deletedModelId?: string) => Promise<void>;
 }
 
 const AdminDataContext = createContext<AdminDataContextType | undefined>(undefined);
@@ -62,7 +62,7 @@ export function AdminDataProvider({
     console.log('✅ refreshData: Estado actualizado');
   }, []);
 
-  const refreshDataAfterDeletion = useCallback(async () => {
+  const refreshDataAfterDeletion = useCallback(async (deletedModelId?: string) => {
     console.log('🔄 refreshDataAfterDeletion: Obteniendo datos frescos después de eliminación...');
     const [newBrands, freshModels, newServices, newCoupons, newSettings] = await Promise.all([
       getBrands(),
@@ -72,6 +72,19 @@ export function AdminDataProvider({
       getSettings(),
     ]);
     console.log('📊 refreshDataAfterDeletion: Datos frescos obtenidos - modelos:', freshModels.length);
+    
+    // Verificar si el modelo eliminado ya no está en la lista fresca
+    if (deletedModelId) {
+      const modelStillExists = freshModels.some(model => model.id === deletedModelId);
+      if (modelStillExists) {
+        console.warn('⚠️ ADVERTENCIA: El modelo eliminado aún aparece en los datos frescos de Firestore');
+        console.log('🔍 Modelo buscado ID:', deletedModelId);
+        console.log('🔍 IDs de modelos frescos:', freshModels.map(m => m.id).slice(0, 10), '...');
+      } else {
+        console.log('✅ Confirmado: El modelo eliminado ya no aparece en los datos frescos de Firestore');
+      }
+    }
+    
     setBrands(newBrands);
     setModels(freshModels);
     setServices(newServices);

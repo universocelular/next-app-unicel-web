@@ -277,18 +277,8 @@ export function BrandsAndModels() {
         
         // Refrescar los datos desde la base de datos usando función fresca
         console.log('🔄 Refrescando datos frescos desde la base de datos...');
-        await refreshDataAfterDeletion();
+        await refreshDataAfterDeletion(modelToDelete.id);
         console.log('✅ Datos frescos refrescados correctamente');
-        
-        // Verificar que el modelo ya no está en la lista (usando el estado actualizado)
-        setTimeout(() => {
-          const modelStillExists = models.some(model => model.id === modelToDelete.id);
-          if (modelStillExists) {
-            console.warn('⚠️ ADVERTENCIA: El modelo aún aparece en la lista después del refresh');
-          } else {
-            console.log('✅ Confirmado: El modelo ya no aparece en la lista');
-          }
-        }, 200);
         
         toast({ title: "Éxito", description: "Modelo eliminado correctamente." });
         console.log('🎉 Eliminación completada exitosamente');

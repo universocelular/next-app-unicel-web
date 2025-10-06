@@ -79,6 +79,7 @@ export async function getModelsFresh(): Promise<Model[]> {
     });
     
     console.log('✅ getModelsFresh: Obtenidos', sortedModels.length, 'modelos frescos');
+    console.log('🔍 Primeros 5 IDs de modelos frescos:', sortedModels.slice(0, 5).map(m => m.id));
     return sortedModels;
   } catch (error) {
     console.error('❌ Error fetching fresh models:', error);
