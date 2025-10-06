@@ -201,6 +201,7 @@ export async function deleteModel(id: string): Promise<void> {
       throw new Error('ID de modelo inválido');
     }
 
+    console.log('Eliminando modelo con ID:', id);
     const modelDoc = doc(db, "models", id);    
     // Verificar que el documento existe antes de eliminar
     const docSnap = await getDoc(modelDoc);
@@ -208,8 +209,10 @@ export async function deleteModel(id: string): Promise<void> {
       throw new Error('El modelo no existe en la base de datos');
     }
 
+    console.log('Modelo encontrado, procediendo con la eliminación...');
     // Eliminar el documento
     await deleteDoc(modelDoc);
+    console.log('Modelo eliminado de Firestore exitosamente');
  
     // Revalidar cache y páginas relacionadas
     revalidateTag('models');
@@ -218,6 +221,7 @@ export async function deleteModel(id: string): Promise<void> {
     revalidatePath("/admin/brands");
     revalidatePath("/admin/prices");
     revalidatePath("/");
+    console.log('Caché invalidado correctamente');
     
   } catch (error) {
     console.error('Error deleting model:', error);

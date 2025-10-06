@@ -263,14 +263,16 @@ export function BrandsAndModels() {
     if (!modelToDelete) return;
     
     try {
-
+        // Primero eliminar de la base de datos
         await deleteModel(modelToDelete.id);
         
-        // Actualizar el estado local inmediatamente
-        setModels(prevModels => prevModels.filter(model => model.id !== modelToDelete.id));
+        // Esperar un momento para que se complete la invalidación del caché
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Refrescar los datos desde la base de datos
+        await refreshData();
         
         toast({ title: "Éxito", description: "Modelo eliminado correctamente." });
-        await refreshData();
     } catch (error) {
         console.error('Error in confirmDeleteModel:', error);
         const errorMessage = error instanceof Error ? error.message : 'Error desconocido al eliminar el modelo';
