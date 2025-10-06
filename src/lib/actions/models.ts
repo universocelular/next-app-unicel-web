@@ -1,7 +1,7 @@
 
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag, unstable_noStore } from "next/cache";
 import { collection, getDocs, getDoc, addDoc, doc, updateDoc, deleteDoc, writeBatch, query, where, orderBy, limit, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Model } from "@/lib/db/types";
@@ -53,10 +53,18 @@ export async function getModels(): Promise<Model[]> {
   return getCachedModels();
 }
 
+// Función para obtener modelos sin caché (para debugging)
+export async function getModelsNoCache(): Promise<Model[]> {
+  unstable_noStore();
+  return getModelsFresh();
+}
+
 // Función para obtener modelos frescos sin caché (útil después de eliminaciones)
 export async function getModelsFresh(): Promise<Model[]> {
   try {
-    console.log('🔄 getModelsFresh: Obteniendo modelos directamente de Firestore...');
+    // Forzar que no se use caché
+    unstable_noStore();
+    console.log('🔄 getModelsFresh: Obteniendo modelos directamente de Firestore (sin caché)...');
     const querySnapshot = await getDocs(
       query(modelsCollectionRef, orderBy('brand'))
     );
@@ -249,6 +257,7 @@ export async function deleteModel(id: string): Promise<void> {
     console.log('Modelo eliminado de Firestore exitosamente');
  
     // Revalidar cache y páginas relacionadas de manera más agresiva
+    console.log('🔄 Iniciando invalidación de caché...');
     revalidateTag('models');
     revalidateTag('models-list');
     revalidateTag(`model-by-id-${id}`);
@@ -257,7 +266,23 @@ export async function deleteModel(id: string): Promise<void> {
     revalidatePath("/");
     revalidatePath("/admin", 'layout');
     revalidatePath("/model", 'layout');
-    console.log('Caché invalidado correctamente');
+    revalidatePath("/admin/brands", 'page');
+    revalidatePath("/admin/prices", 'page');
+    console.log('✅ Caché invalidado correctamente');
+    
+    // Esperar un momento para que se complete la invalidación
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // Verificar que el modelo realmente se eliminó obteniendo datos frescos
+    console.log('🔍 Verificando eliminación con datos frescos...');
+    const freshModels = await getModelsFresh();
+    const modelStillExists = freshModels.some(model => model.id === id);
+    if (modelStillExists) {
+      console.error('❌ ERROR: El modelo aún existe en Firestore después de la eliminación');
+      throw new Error('El modelo no se eliminó correctamente de la base de datos');
+    } else {
+      console.log('✅ Confirmado: El modelo se eliminó correctamente de Firestore');
+    }
     
   } catch (error) {
     console.error('Error deleting model:', error);

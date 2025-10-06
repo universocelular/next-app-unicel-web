@@ -4,7 +4,7 @@
 import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import type { Brand, Model, Service, Coupon, Settings } from '@/lib/db/types';
 import { getBrands } from '@/lib/actions/brands';
-import { getModels, getModelsFresh } from '@/lib/actions/models';
+import { getModels, getModelsFresh, getModelsNoCache } from '@/lib/actions/models';
 import { getServices } from '@/lib/actions/services';
 import { getCoupons } from '@/lib/actions/coupons';
 import { getSettings } from '@/lib/actions/settings';
@@ -66,7 +66,7 @@ export function AdminDataProvider({
     console.log('🔄 refreshDataAfterDeletion: Obteniendo datos frescos después de eliminación...');
     const [newBrands, freshModels, newServices, newCoupons, newSettings] = await Promise.all([
       getBrands(),
-      getModelsFresh(), // Usar función fresca para modelos
+      getModelsNoCache(), // Usar función sin caché para modelos
       getServices(),
       getCoupons(),
       getSettings(),
