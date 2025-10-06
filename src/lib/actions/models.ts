@@ -195,11 +195,34 @@ export async function updateModel(id: string, data: Partial<Omit<Model, 'id'>>):
 }
 
 export async function deleteModel(id: string): Promise<void> {
-  const modelDoc = doc(db, "models", id);
-  await deleteDoc(modelDoc);
-  revalidatePath("/admin/brands");
-  revalidatePath("/");
-  return Promise.resolve();
+  try {   
+   // Validar que el ID sea válido
+    if (!id || typeof id !== 'string' || id.trim() === '') {
+      throw new Error('ID de modelo inválido');
+    }
+
+    const modelDoc = doc(db, "models", id);    
+    // Verificar que el documento existe antes de eliminar
+    const docSnap = await getDoc(modelDoc);
+    if (!docSnap.exists()) {
+      throw new Error('El modelo no existe en la base de datos');
+    }
+
+    // Eliminar el documento
+    await deleteDoc(modelDoc);
+ 
+    // Revalidar cache y páginas relacionadas
+    revalidateTag('models');
+    revalidateTag('models-list');
+    revalidateTag(`model-by-id-${id}`);
+    revalidatePath("/admin/brands");
+    revalidatePath("/admin/prices");
+    revalidatePath("/");
+    
+  } catch (error) {
+    console.error('Error deleting model:', error);
+    throw new Error(`Error al eliminar el modelo: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+  }
 }
 
 export async function updatePricesInBatch(pricesToUpdate: Record<string, number>, serviceId: string): Promise<Model[]> {

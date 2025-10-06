@@ -19,6 +19,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -52,6 +63,7 @@ export function BrandsAndModels() {
   
   const [currentBrand, setCurrentBrand] = useState<Brand | null>(null);
   const [currentModel, setCurrentModel] = useState<Model | null>(null);
+  const [modelToDelete, setModelToDelete] = useState<Model | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modelSearch, setModelSearch] = useState('');
   const [formKey, setFormKey] = useState(Date.now());
@@ -243,17 +255,32 @@ export function BrandsAndModels() {
     }
   };
 
-  const handleDeleteModel = async (id: string) => {
+  const handleDeleteModel = (model: Model) => {
+    setModelToDelete(model);
+  };
+
+  const confirmDeleteModel = async () => {
+    if (!modelToDelete) return;
+    
     try {
-        await deleteModel(id);
+
+        await deleteModel(modelToDelete.id);
         
         // Actualizar el estado local inmediatamente
-        setModels(prevModels => prevModels.filter(model => model.id !== id));
+        setModels(prevModels => prevModels.filter(model => model.id !== modelToDelete.id));
         
         toast({ title: "Éxito", description: "Modelo eliminado correctamente." });
         await refreshData();
     } catch (error) {
-         toast({ variant: "destructive", title: "Error", description: "Algo salió mal." });
+        console.error('Error in confirmDeleteModel:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Error desconocido al eliminar el modelo';
+        toast({ 
+            variant: "destructive", 
+            title: "Error al eliminar modelo", 
+            description: errorMessage 
+        });
+    } finally {
+        setModelToDelete(null);
     }
   };
 
@@ -441,9 +468,33 @@ export function BrandsAndModels() {
                                             <Button variant="ghost" size="icon" onClick={() => {setCurrentModel(model); setModelModalOpen(true)}}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteModel(model.id)}>
-                                                <Trash className="h-4 w-4" />
-                                            </Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="text-destructive">
+                                                        <Trash className="h-4 w-4" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Esta acción no se puede deshacer. Esto eliminará permanentemente el modelo "{model.name}" de la marca {model.brand}.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                        <AlertDialogAction 
+                                                            onClick={() => {
+                                                                setModelToDelete(model);
+                                                                confirmDeleteModel();
+                                                            }}
+                                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                        >
+                                                            Eliminar
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
                                         </TableCell>
                                     </TableRow>
                                 ))}
