@@ -256,25 +256,44 @@ export function BrandsAndModels() {
   };
 
   const handleDeleteModel = (model: Model) => {
+    console.log('🎯 Usuario seleccionó eliminar modelo:', model.name, 'ID:', model.id);
     setModelToDelete(model);
   };
 
   const confirmDeleteModel = async () => {
     if (!modelToDelete) return;
     
+    console.log('🗑️ Iniciando eliminación del modelo:', modelToDelete.name, 'ID:', modelToDelete.id);
+    
     try {
         // Primero eliminar de la base de datos
+        console.log('📡 Enviando solicitud de eliminación al servidor...');
         await deleteModel(modelToDelete.id);
+        console.log('✅ Modelo eliminado del servidor exitosamente');
         
         // Esperar un momento para que se complete la invalidación del caché
+        console.log('⏳ Esperando invalidación del caché...');
         await new Promise(resolve => setTimeout(resolve, 100));
         
         // Refrescar los datos desde la base de datos
+        console.log('🔄 Refrescando datos desde la base de datos...');
         await refreshData();
+        console.log('✅ Datos refrescados correctamente');
+        
+        // Verificar que el modelo ya no está en la lista (usando el estado actualizado)
+        setTimeout(() => {
+          const modelStillExists = models.some(model => model.id === modelToDelete.id);
+          if (modelStillExists) {
+            console.warn('⚠️ ADVERTENCIA: El modelo aún aparece en la lista después del refresh');
+          } else {
+            console.log('✅ Confirmado: El modelo ya no aparece en la lista');
+          }
+        }, 200);
         
         toast({ title: "Éxito", description: "Modelo eliminado correctamente." });
+        console.log('🎉 Eliminación completada exitosamente');
     } catch (error) {
-        console.error('Error in confirmDeleteModel:', error);
+        console.error('❌ Error in confirmDeleteModel:', error);
         const errorMessage = error instanceof Error ? error.message : 'Error desconocido al eliminar el modelo';
         toast({ 
             variant: "destructive", 
@@ -283,6 +302,7 @@ export function BrandsAndModels() {
         });
     } finally {
         setModelToDelete(null);
+        console.log('🏁 Proceso de eliminación finalizado');
     }
   };
 
