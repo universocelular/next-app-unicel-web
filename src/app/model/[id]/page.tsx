@@ -9,16 +9,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 export async function generateStaticParams() {
   try {
     const models = await getModels();
-    return models.map((model) => ({
+    const topModels = models.slice(0, 50);
+
+    return topModels.map((model) => ({
       id: model.id,
     }));
   } catch (error) {
-    console.error("Error generating static params:", error);
+    console.error("Error generating static params for top models:", error);
     return [];
   }
 }
 
-// Componente de loading optimizado
 function ServiceSelectionSkeleton() {
   return (
     <div className="container mx-auto px-4 py-12 text-center">
