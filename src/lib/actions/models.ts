@@ -65,9 +65,9 @@ export async function forceClearCache(): Promise<void> {
     console.log('🧹 Forzando limpieza completa del caché...');
     
     // Invalidar todas las etiquetas relacionadas con modelos
-    revalidateTag('models');
-    revalidateTag('models-list');
-    revalidateTag('model-by-id');
+    revalidateTag('models', 'default');
+    revalidateTag('models-list', 'default');
+    revalidateTag('model-by-id', 'default');
     
     // Invalidar todas las rutas relacionadas
     revalidatePath("/admin/brands");
@@ -392,9 +392,9 @@ export async function addModel(data: Omit<Model, 'id'>): Promise<Model> {
     console.log('Model added successfully with ID:', docRef.id);
     
     // Revalidar caché y rutas relacionadas de manera más agresiva
-    revalidateTag('models');
-    revalidateTag('models-list');
-    revalidateTag('model-by-id');
+    revalidateTag('models', 'default');
+    revalidateTag('models-list', 'default');
+    revalidateTag('model-by-id', 'default');
     revalidatePath("/admin/brands", 'layout');
     revalidatePath("/admin/brands", 'page');
     revalidatePath("/admin/prices", 'layout');
@@ -434,8 +434,8 @@ export async function updateModel(id: string, data: Partial<Omit<Model, 'id'>>):
     console.log('Model updated successfully');
 
     // Revalidar cache y páginas relacionadas
-    revalidateTag('models');
-    revalidateTag(`model-by-id-${id}`);
+    revalidateTag('models', 'default');
+    revalidateTag(`model-by-id-${id}`, 'default');
     revalidatePath("/admin/prices");
     revalidatePath('/model', 'layout');
     revalidatePath("/");
@@ -499,9 +499,9 @@ export async function deleteModel(id: string): Promise<void> {
  
     // Revalidar cache y páginas relacionadas de manera más agresiva
     console.log('🔄 Iniciando invalidación de caché...');
-    revalidateTag('models');
-    revalidateTag('models-list');
-    revalidateTag(`model-by-id-${id}`);
+    revalidateTag('models', 'default');
+    revalidateTag('models-list', 'default');
+    revalidateTag(`model-by-id-${id}`, 'default');
     revalidatePath("/admin/brands");
     revalidatePath("/admin/prices");
     revalidatePath("/");
@@ -565,7 +565,7 @@ export async function updatePricesInBatch(pricesToUpdate: Record<string, number>
         .map(snapshot => ({ id: snapshot.id, ...snapshot.data() } as Model));
 
     // Revalidar cache y páginas relacionadas
-    revalidateTag('models');
+    revalidateTag('models', 'default');
     revalidatePath("/admin/prices");
     revalidatePath('/model', 'layout');
     return updatedModels;
@@ -586,7 +586,7 @@ export async function setAllPricesUnderConstruction(): Promise<void> {
     await batch.commit();
     
     // Revalidar cache y páginas relacionadas
-    revalidateTag('models');
+    revalidateTag('models', 'default');
     revalidatePath("/admin/prices");
     revalidatePath('/model', 'layout');
 }
