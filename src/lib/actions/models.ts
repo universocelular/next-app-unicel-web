@@ -435,7 +435,7 @@ export async function updateModel(id: string, data: Partial<Omit<Model, 'id'>>):
 
     // Revalidar cache y páginas relacionadas
     revalidateTag('models', 'default');
-    revalidateTag(`model-by-id-${id}`, 'default');
+    revalidateTag('model-by-id', 'default');
     revalidatePath("/admin/prices");
     revalidatePath('/model', 'layout');
     revalidatePath("/");
